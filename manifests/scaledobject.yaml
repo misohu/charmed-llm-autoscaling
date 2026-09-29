@@ -1,0 +1,21 @@
+# KEDA scales the Mixtral workload Deployment on a live vLLM metric: the number
+# of in-flight inference requests, read from the Prometheus in the cos model.
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: mixtral
+  namespace: default
+spec:
+  scaleTargetRef:
+    name: mixtral-kserve            # the Deployment KServe generates
+  minReplicaCount: 1
+  maxReplicaCount: 2                 # each replica uses 2 GPUs -> 4 of 8
+  pollingInterval: 15               # how often KEDA queries Prometheus (seconds)
+  cooldownPeriod: 60                # wait before scaling back down (seconds)
+  triggers:
+    - type: prometheus
+      metadata:
+        # cos-lite Prometheus, reached in-cluster (cross-namespace).
+        serverAddress: http://prometheus.cos.svc.cluster.local:9090
+        query: 'sum(vllm:num_requests_running{k8s_namespace="default",k8s_pod_name=~"mixtral-kserve-.*"})'
+        threshold: "1"              # ~1 in-flight request per replica -> scale up

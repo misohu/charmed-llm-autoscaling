@@ -1,0 +1,21 @@
+juju:
+  channel: 3.6/stable
+  model-defaults:
+    logging-config: <root>=INFO; unit=DEBUG
+
+providers:
+  k8s:
+    enable: true
+    bootstrap: true
+    channel: 1.32-classic/stable
+    features:
+      local-storage:
+      load-balancer:
+        enabled: true
+        l2-mode: true
+        # IMPORTANT: set this to a small free range on YOUR network.
+        # Needs at least 2 addresses: one for the model gateway, one for
+        # cos-lite's Traefik.
+        cidrs: 10.64.140.40/29
+    bootstrap-constraints:
+      root-disk: 2G

@@ -1,0 +1,71 @@
+# Mixtral-8x7B-Instruct served by KServe across 2 GPUs (tensor parallelism).
+#
+# The model has no static replicas on purpose: KEDA owns the replica count once
+# the ScaledObject is applied (see scaledobject.yaml).
+#
+# NOTE: this pulls the FULL Hugging Face repo (~190 GB, weights shipped twice)
+# into a per-pod emptyDir. For a faster download use mixtral-llmisvc-safetensors.yaml,
+# and for fast scale-up stage the model in S3 or a shared read-only volume.
+apiVersion: serving.kserve.io/v1alpha2
+kind: LLMInferenceService
+metadata:
+  name: mixtral
+  namespace: default
+spec:
+  model:
+    uri: hf://mistralai/Mixtral-8x7B-Instruct-v0.1
+    name: mistralai/Mixtral-8x7B-Instruct-v0.1
+  storageInitializer:
+    enabled: false
+  router:
+    scheduler: {}
+    route: {}
+  template:
+    volumes:
+      - name: kserve-pvc-source
+        emptyDir: {}
+    initContainers:
+      - name: storage-initializer
+        image: docker.io/charmedkubeflow/storage-initializer:0.17.0-07d37fb
+        args: ["hf://mistralai/Mixtral-8x7B-Instruct-v0.1", "/mnt/models"]
+        env:
+          - name: HF_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: hf-token
+                key: HF_TOKEN
+          - name: HF_HUB_ENABLE_HF_TRANSFER
+            value: "0"
+          - name: HF_HUB_DOWNLOAD_TIMEOUT
+            value: "60"
+        volumeMounts:
+          - name: kserve-pvc-source
+            mountPath: /mnt/models
+    containers:
+      - name: main
+        image: docker.io/charmedkubeflow/vllm-cuda-gpu:0.19.0-e511371-20260702095505
+        # Shard the model across 2 GPUs.
+        args: ["--tensor-parallel-size", "2"]
+        securityContext:
+          runAsNonRoot: false
+        env:
+          - name: VLLM_LOGGING_LEVEL
+            value: INFO
+          - name: HF_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: hf-token
+                key: HF_TOKEN
+        volumeMounts:
+          - name: kserve-pvc-source
+            mountPath: /mnt/models
+            readOnly: true
+        resources:
+          requests:
+            cpu: "4"
+            memory: "32Gi"
+            nvidia.com/gpu: "2"
+          limits:
+            cpu: "8"
+            memory: "96Gi"
+            nvidia.com/gpu: "2"
