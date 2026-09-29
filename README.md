@@ -33,7 +33,9 @@ reproducible on your own hardware.
 │   ├── mixtral-llmisvc.yaml           # Mixtral on 2 GPUs (tensor-parallel-size 2)
 │   ├── mixtral-llmisvc-safetensors.yaml  # same, but downloads only safetensors (~half)
 │   └── scaledobject.yaml              # KEDA: scale on vllm:num_requests_running
-└── scripts/generate-load.sh           # drive concurrent traffic
+└── scripts/
+    ├── generate-load.sh                # drive concurrent traffic
+    └── deploy-llm-integrator.sh        # deploy a model from config (no YAML), disaggregated
 ```
 
 ## Quick start
@@ -74,6 +76,20 @@ load. Get the admin password with:
 ```bash
 juju run grafana/0 -m cos get-admin-password
 ```
+
+## Alternative: deploy a model without YAML (llm-integrator)
+
+Instead of hand-writing an `LLMInferenceService`, the `llm-integrator` charm can
+render one for you from config, loading the model from **S3** or **Hugging Face**.
+By default it deploys in **disaggregated prefill/decode** mode (separate prefill
+and decode pods behind a scheduler).
+
+```bash
+export AWS_ACCESS_KEY_ID=... AWS_SECRET_ACCESS_KEY=... AWS_DEFAULT_REGION=eu-central-1
+BUCKET=my-model-bucket ./scripts/deploy-llm-integrator.sh
+```
+
+See the header of `scripts/deploy-llm-integrator.sh` for the Hugging Face variant.
 
 ## Notes
 
