@@ -57,7 +57,7 @@ kubectl apply -f manifests/mixtral-llmisvc.yaml
 kubectl -n default get llminferenceservice mixtral -w   # wait for READY=True
 
 # 4. Call it
-GW=$(kubectl -n kubeflow get gateway envoy-ingress-k8s -o jsonpath='{.status.addresses[0].value}')
+GW=$(kubectl -n kserve-llm get gateway envoy-ingress-k8s -o jsonpath='{.status.addresses[0].value}')
 curl -sS "http://$GW/default/mixtral/v1/completions" \
   -H 'Content-Type: application/json' \
   -d '{"model":"mistralai/Mixtral-8x7B-Instruct-v0.1","prompt":"Hello!","max_tokens":32}'

@@ -12,6 +12,7 @@
 #   BUCKET      (default: my-model-bucket)
 #   MODEL_URI   (default: s3://$BUCKET/pythia-70m)
 #   MODEL_NAME  (default: EleutherAI/pythia-70m)
+#   LLM_MODEL   Juju model running the serving stack (default: kserve-llm)
 set -euo pipefail
 
 : "${AWS_ACCESS_KEY_ID:?set AWS_ACCESS_KEY_ID}"
@@ -20,9 +21,13 @@ set -euo pipefail
 : "${BUCKET:=my-model-bucket}"
 : "${MODEL_URI:=s3://$BUCKET/pythia-70m}"
 : "${MODEL_NAME:=EleutherAI/pythia-70m}"
+: "${LLM_MODEL:=kserve-llm}"
 
 VLLM_CPU_IMAGE=docker.io/charmedkubeflow/vllm-cpu:0.19.0-5f4a278-20260825092922
 STORAGE_INIT_IMAGE=docker.io/charmedkubeflow/storage-initializer:0.17.0-07d37fb
+
+echo "== 0) target the serving model ($LLM_MODEL) =="
+juju switch "$LLM_MODEL"
 
 echo "== 1) s3-integrator with the bucket coordinates =="
 juju deploy s3-integrator --channel 2/edge \
@@ -50,7 +55,7 @@ juju integrate llm-integrator:s3-credentials s3-integrator:s3-credentials
 echo
 echo "Watch it settle, then check the pods (prefill / decode / router-scheduler):"
 echo "  juju status s3-integrator llm-integrator kserve-llmisvc --relations"
-echo "  kubectl -n kubeflow get pods -l app.kubernetes.io/name=llm-integrator -L llm-d.ai/role"
+echo "  kubectl -n kserve-llm get pods -l app.kubernetes.io/name=llm-integrator -L llm-d.ai/role"
 echo
 echo "Hugging Face instead of S3:"
 echo "  juju add-secret hf-token token=\$HF_TOKEN   # then grant it to llm-integrator"

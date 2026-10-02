@@ -3,13 +3,13 @@
 # so vllm:num_requests_running climbs and KEDA scales the workload out.
 #
 # Env:
-#   LLM_MODEL    Juju model running the serving stack (default: kubeflow)
+#   LLM_MODEL    Juju model running the serving stack (default: kserve-llm)
 #   CONCURRENCY  number of parallel in-flight requests (default: 48)
 #   MAX_TOKENS   generation length per request (default: 512)
 #
 # Ctrl-C to stop.
 set -euo pipefail
-: "${LLM_MODEL:=kubeflow}"
+: "${LLM_MODEL:=kserve-llm}"
 : "${CONCURRENCY:=48}"
 : "${MAX_TOKENS:=512}"
 

@@ -40,9 +40,6 @@ until kubectl logs -n gpu-operator-resources -l app=nvidia-operator-validator 2>
   sleep 60
 done
 
-echo "== Create the model the serving stack will deploy into =="
-juju add-model kubeflow
-
 echo
 echo "Done. GPUs now available to Kubernetes:"
 kubectl get nodes -o jsonpath='{.items[0].status.capacity.nvidia\.com/gpu}'; echo
